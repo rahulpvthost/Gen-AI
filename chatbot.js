@@ -1,5 +1,5 @@
 import readline from "node:readline/promises";
-
+import NodeCache from 'node-cache';
 import "dotenv/config";
 import OpenAI from "openai";
 import { tavily } from "@tavily/core";
@@ -12,21 +12,55 @@ const client = new OpenAI({
 const tvly = tavily({ apiKey: process.env.TAVILY_API_KEY });
 
 
+const cache = new NodeCache({stdTTL:60*60*24});//24 hours
 
-export async function generate(userMessage){
-const messages=[
+export async function generate(userMessage,threadId){
+const baseMessages=[
         { role: "system",
           content: `You are a smart personal assistant who answers the asked questions.
-                   You have access to following tools:
-                   1. webSearch({query}:{query:string}) // Search the web for information.
-                   Today's date is ${new Date().toDateString()}. Search results may be from earlier dates, so compare them with today's date before saying something is upcoming or rumored.`
+You have access to the following tools:
+1. webSearch({query}:{query:string}) // Search the web for information.
+
+Today's date is ${new Date().toDateString()}. Search results may be from earlier dates, so compare them with today's date before saying something is upcoming or rumored.
+
+Rules:
+- Search only for current or recent information (weather, news, prices, scores, latest releases).
+- Do NOT search for stable facts, definitions or general knowledge.
+- Search at most once per question, then answer directly.
+- Use plain text. Do not use markdown tables.
+
+Examples:
+
+User: what is the full form of LOL?
+Assistant: LOL stands for "Laugh Out Loud".
+
+User: what is the weather in Delhi today?
+Assistant: [call webSearch with query "Delhi weather today"], then give temperature and conditions in two lines.
+
+User: when was iPhone 12 launched?
+Assistant: It was announced on October 13, 2020 and released on October 23, 2020.`
         }, 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         //  { role: "user",
         //   content: 'when was iphone 16 launched?'
         // },
       
     ]   
-
+    
+     const messages = cache.get(threadId)??baseMessages;
 
      
       messages.push({
@@ -67,6 +101,8 @@ messages.push(response.choices[0].message)
 const toolCalls = response.choices[0].message.tool_calls;
 
 if(!toolCalls || toolCalls.length === 0){
+    // here we end the chatbot response
+    cache.set(threadId,messages);
     return response.choices[0].message.content;
     
 }else{
