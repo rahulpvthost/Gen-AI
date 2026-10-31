@@ -27,7 +27,7 @@ async function generate(text){
 
     chatContainer?.appendChild(loading);
 
-    // call server
+    // Call server
     const assistantMessage = await callServer(text);
 
 
@@ -44,6 +44,7 @@ async function generate(text){
 
 
 }
+
 async function callServer(inputText){
     const response = await fetch('http://localhost:3001/chat',{
         method:"POST",
