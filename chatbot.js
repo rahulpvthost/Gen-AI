@@ -67,8 +67,15 @@ Assistant: It was announced on October 13, 2020 and released on October 23, 2020
         role:'user',
         content:userMessage,
       });
+
+      const MAX_RETRIES=10;
+      let count=0;
    
   while(true){
+    if(count>MAX_RETRIES){
+        return "I could not find the result,please try again";
+    }
+    count++;
 
 const response = await client.chat.completions.create({
     temperature: 0,
